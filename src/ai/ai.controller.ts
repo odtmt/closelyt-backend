@@ -5,8 +5,8 @@ import { AiService } from './ai.service';
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 
-  @Get()
+  @Get('test')
   test() {
-    return this.aiService.test();
+    return this.aiService.generateReply('Hello Closelyt AI is working 🚀');
   }
 }
