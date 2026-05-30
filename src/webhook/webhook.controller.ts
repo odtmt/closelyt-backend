@@ -23,7 +23,6 @@ export class WebhookController {
     private readonly crm: CrmService,
   ) {}
 
-  // ✅ META VERIFICATION
   @Get()
   verifyWebhook(
     @Query('hub.mode') mode: string,
@@ -38,41 +37,36 @@ export class WebhookController {
     return res.sendStatus(HttpStatus.FORBIDDEN);
   }
 
-  // 🚀 MESSAGE RECEIVER + CRM + AI + WHATSAPP REPLY
   @Post()
   async handleMessage(@Body() body: any, @Res() res: Response) {
     try {
       const message = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
       if (!message) {
-        console.log('⚠️ Non-message event:', JSON.stringify(body, null, 2));
         return res.status(200).json({ status: 'ignored' });
       }
 
       const phone = message.from;
-      const text = message.text?.body;
+      const text = message.text?.body || '';
 
-      console.log('\n📩 INCOMING MESSAGE');
-      console.log('From:', phone);
-      console.log('Text:', text);
+      // 1. CRM save/update
+      const lead = this.crm.upsertLead(phone, text);
 
-      // 1️⃣ SAVE / UPDATE CRM LEAD
-      this.crm.upsertLead(phone, text);
+      // 2. AI reply
+      const aiReply = await this.ai.generateReply(text);
 
-      // 2️⃣ GENERATE AI RESPONSE
-      const reply = await this.ai.generateReply(text);
+      // 3. WhatsApp send
+      await this.whatsapp.sendMessage(phone, aiReply);
 
-      console.log('🤖 AI REPLY:', reply);
+      // 4. Save conversation
+      this.crm.saveConversation(phone, text, aiReply);
 
-      // 3️⃣ SEND WHATSAPP MESSAGE
-      await this.whatsapp.sendMessage(phone, reply);
-
-      // 4️⃣ SAVE REPLY TO CRM
-      this.crm.saveReply(phone, reply);
+      // 5. Automation trigger
+      this.crm.triggerAutomation(lead);
 
       return res.status(200).json({ status: 'replied' });
     } catch (error) {
-      console.error('❌ Webhook error:', error);
+      console.error(error);
       return res.status(500).json({ status: 'error' });
     }
   }

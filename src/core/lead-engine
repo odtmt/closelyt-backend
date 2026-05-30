@@ -1,0 +1,15 @@
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class LeadEngineService {
+  async resolveLead(message: any) {
+    return {
+      phone: message.phone,
+      status: 'new',
+    };
+  }
+
+  async saveMessage(lead: any, message: any) {}
+
+  async updateStatus(lead: any, reply: string) {}
+}

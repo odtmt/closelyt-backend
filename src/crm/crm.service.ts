@@ -1,43 +1,41 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Lead, LeadDocument } from './schemas/crm.schema';
 
 @Injectable()
 export class CrmService {
-  constructor(
-    @InjectModel(Lead.name)
-    private leadModel: Model<LeadDocument>,
-  ) {}
+  private leads = new Map();
 
-  // ✅ ONE clean method handles both create + update
-  async upsertLead(phone: string, message: string) {
-    let lead = await this.leadModel.findOne({ phone });
+  upsertLead(phone: string, message: string) {
+    const existing = this.leads.get(phone) || {
+      phone,
+      messages: [],
+      status: 'new',
+    };
 
-    if (!lead) {
-      lead = new this.leadModel({
-        phone,
-        name: 'Unknown',
-        lastMessage: message,
-      });
-    } else {
-      lead.lastMessage = message;
-    }
+    existing.messages.push({
+      text: message,
+      timestamp: new Date(),
+    });
 
-    return lead.save();
+    this.leads.set(phone, existing);
+
+    return existing;
   }
 
-  // ✅ store AI reply separately (optional but useful)
-  async saveReply(phone: string, reply: string) {
-    const lead = await this.leadModel.findOne({ phone });
+  saveConversation(phone: string, incoming: string, outgoing: string) {
+    const lead = this.leads.get(phone);
+    if (!lead) return;
 
-    if (!lead) return null;
-
-    lead.lastMessage = reply;
-    return lead.save();
+    lead.messages.push(
+      { type: 'incoming', text: incoming },
+      { type: 'outgoing', text: outgoing },
+    );
   }
 
-  async getLeads() {
-    return this.leadModel.find().sort({ createdAt: -1 });
+  triggerAutomation(lead: any) {
+    console.log('⚙️ Automation triggered for:', lead.phone);
+  }
+
+  getLead(phone: string) {
+    return this.leads.get(phone);
   }
 }

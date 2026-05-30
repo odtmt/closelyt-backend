@@ -1,0 +1,75 @@
+import { Injectable } from '@nestjs/common';
+
+type Message = {
+  phone: string;
+  text: string;
+  timestamp: Date;
+};
+
+type Lead = {
+  phone: string;
+  status: 'new' | 'active' | 'converted';
+  messages: Message[];
+};
+
+@Injectable()
+export class LeadEngineService {
+  private leads: Map<string, Lead> = new Map();
+
+  /**
+   * STEP 1: Find existing lead or create new one
+   */
+  async resolveLead(message: Message): Promise<Lead> {
+    const existing = this.leads.get(message.phone);
+
+    if (existing) {
+      return existing;
+    }
+
+    const newLead: Lead = {
+      phone: message.phone,
+      status: 'new',
+      messages: [],
+    };
+
+    this.leads.set(message.phone, newLead);
+
+    console.log(`🧠 New lead created: ${message.phone}`);
+
+    return newLead;
+  }
+
+  /**
+   * STEP 2: Save incoming message
+   */
+  async saveMessage(lead: Lead, message: Message): Promise<void> {
+    lead.messages.push(message);
+
+    this.leads.set(lead.phone, lead);
+
+    console.log(`💬 Message saved for ${lead.phone}`);
+  }
+
+  /**
+   * STEP 3: Update lead status after reply
+   */
+  async updateStatus(lead: Lead, reply: string): Promise<void> {
+    // Simple logic (upgrade later to AI scoring)
+    if (reply.toLowerCase().includes('buy')) {
+      lead.status = 'converted';
+    } else {
+      lead.status = 'active';
+    }
+
+    this.leads.set(lead.phone, lead);
+
+    console.log(`📊 Lead updated: ${lead.phone} → ${lead.status}`);
+  }
+
+  /**
+   * Optional helper
+   */
+  async getLead(phone: string): Promise<Lead | undefined> {
+    return this.leads.get(phone);
+  }
+}
