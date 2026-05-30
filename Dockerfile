@@ -1,26 +1,26 @@
 # Use official Node.js image
 FROM node:20-alpine
 
-# Create app directory
+# Set working directory
 WORKDIR /app
 
-# Copy package files first
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application
-COPY . .
-
-# Build NestJS project
-RUN npm run build
-
-# Render will provide PORT automatically
+# Enable production environment early
 ENV NODE_ENV=production
 
-# Expose application port
+# Copy package files first (for caching)
+COPY package*.json ./
+
+# Install ONLY production dependencies first (faster + safer)
+RUN npm ci --omit=dev
+
+# Copy source code
+COPY . .
+
+# Build NestJS app
+RUN npm run build
+
+# Ensure Render port compatibility
 EXPOSE 3000
 
-# Start application
-CMD ["npm", "run", "start:prod"]
+# Start production server
+CMD ["node", "dist/main"]
