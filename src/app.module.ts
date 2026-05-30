@@ -8,24 +8,30 @@ import { UsersModule } from './users/users.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { WebhookModule } from './webhook/webhook.module';
 import { CrmModule } from './crm/crm.module';
+import { WorkspaceModule } from './workspace/workspace.module';
+import { AutomationModule } from './automation/automation.module';
+import { BillingModule } from './billing/billing.module';
+import { CommonModule } from './common/common.module';
+
+console.log('🚀 Closelyt backend initializing...');
 
 @Module({
   imports: [
-    // 🌍 GLOBAL CONFIG (ENV SAFE + VALIDATION READY)
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
       expandVariables: true,
     }),
 
-    // 🧠 ASYNC MONGODB CONNECTION (PRODUCTION SAFE)
     MongooseModule.forRootAsync({
+      imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const uri = config.get<string>('MONGO_URI');
 
         if (!uri) {
-          throw new Error('❌ MONGO_URI is not defined');
+          console.error('❌ MONGO_URI missing in environment variables');
+          throw new Error('MONGO_URI is not defined');
         }
 
         return {
@@ -43,13 +49,16 @@ import { CrmModule } from './crm/crm.module';
       },
     }),
 
-    // 🚀 CORE MODULES (CLEAN ARCHITECTURE)
     AuthModule,
     UsersModule,
     AiModule,
     WhatsappModule,
     WebhookModule,
     CrmModule,
+    WorkspaceModule,
+    AutomationModule,
+    BillingModule,
+    CommonModule,
   ],
 })
 export class AppModule {}
